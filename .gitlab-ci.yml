@@ -1,0 +1,8 @@
+stages:
+  - test
+
+test:
+  image: ruby:2.6
+  script:
+    - bundle
+    - bundle exec rspec spec/possibly_spec.rb
