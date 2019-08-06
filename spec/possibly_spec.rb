@@ -41,6 +41,7 @@ describe "possibly" do
       expect(Maybe(nil).is_none?).to eql(true)
       expect(Maybe([]).is_none?).to eql(true)
       expect(Maybe("").is_none?).to eql(true)
+      expect(Maybe(nil).map { nil }.is_none?).to eql(true)
     end
 
     it "Some" do
@@ -48,6 +49,8 @@ describe "possibly" do
       expect(Maybe(false).is_some?).to eql(true)
       expect(Maybe([1]).is_some?).to eql(true)
       expect(Maybe(" ").is_some?).to eql(true)
+      expect(Maybe(" ").map{ "value" }.is_some?).to eql(true)
+      expect(Maybe(" ").map{ "value" }.get).to eql("value")
     end
   end
 

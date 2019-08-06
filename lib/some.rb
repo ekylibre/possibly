@@ -52,7 +52,7 @@ class Some < Maybe
     "Some(#{@value})"
   end
 
-  def map &block
+  def map(&block)
     Maybe(block.call @value)
   end
 
