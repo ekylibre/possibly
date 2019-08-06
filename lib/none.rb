@@ -69,7 +69,7 @@ class None < Maybe
   end
 
   def map
-    None
+    None.new
   end
 
   def to_a
