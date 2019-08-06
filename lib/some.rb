@@ -52,6 +52,14 @@ class Some < Maybe
     "Some(#{@value})"
   end
 
+  def map!(&block)
+    if @value.respond_to? :map
+      Maybe(@value.map &block)
+    else
+      map &block
+    end
+  end
+
   def map(&block)
     Maybe(block.call @value)
   end

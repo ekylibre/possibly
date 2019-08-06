@@ -71,6 +71,7 @@ class None < Maybe
   def map
     None.new
   end
+  alias map! map
 
   def to_a
     []

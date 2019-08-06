@@ -41,7 +41,8 @@ describe "possibly" do
       expect(Maybe(nil).is_none?).to eql(true)
       expect(Maybe([]).is_none?).to eql(true)
       expect(Maybe("").is_none?).to eql(true)
-      expect(Maybe(nil).map { nil }.is_none?).to eql(true)
+      expect(Maybe(nil).map {raise "Should not be executed"}.is_none?).to eql(true)
+      expect(Maybe(nil).map! {raise "Should not be executed"}.is_none?).to eql(true)
     end
 
     it "Some" do
@@ -49,8 +50,9 @@ describe "possibly" do
       expect(Maybe(false).is_some?).to eql(true)
       expect(Maybe([1]).is_some?).to eql(true)
       expect(Maybe(" ").is_some?).to eql(true)
-      expect(Maybe(" ").map{ "value" }.is_some?).to eql(true)
-      expect(Maybe(" ").map{ "value" }.get).to eql("value")
+      expect(Maybe(" ").map {"value"}.is_some?).to eql(true)
+      expect(Maybe(" ").map {"value"}.get).to eql("value")
+      expect(Maybe([1]).map! {|i| i + 1}.get).to eql([2])
     end
   end
 
@@ -92,13 +94,13 @@ describe "possibly" do
   describe "case expression" do
     def test_case_when(case_value, match_value, non_match_value)
       value = case case_value
-      when non_match_value
-        false
-      when match_value
-        true
-      else
-        false
-      end
+              when non_match_value
+                false
+              when match_value
+                true
+              else
+                false
+              end
 
       expect(value).to be true
     end
@@ -120,8 +122,8 @@ describe "possibly" do
     end
 
     it "matches to lambda" do
-      even = ->(a) { a % 2 == 0 }
-      odd = ->(a) { a % 2 == 1 }
+      even = ->(a) {a % 2 == 0}
+      odd = ->(a) {a % 2 == 1}
       test_case_when(Maybe(2), Some(even), Some(odd))
     end
   end
@@ -136,21 +138,21 @@ describe "possibly" do
   describe "get and or_else" do
     it "get" do
       message = [
-        "`get` called to None. A value was expected.",
-        "",
-        "None => None",
-        ""
+          "`get` called to None. A value was expected.",
+          "",
+          "None => None",
+          ""
       ].join("\n")
 
-      expect { None().get }.to raise_error(None::ValueExpectedException, message)
+      expect {None().get}.to raise_error(None::ValueExpectedException, message)
       expect(Some(1).get).to eql(1)
     end
 
     it "or_else" do
       expect(None().or_else(true)).to eql(true)
-      expect(None().or_else { false }).to eql(false)
+      expect(None().or_else {false}).to eql(false)
       expect(Some(1).or_else(2)).to eql(1)
-      expect(Some(1).or_else { 2 }).to eql(1)
+      expect(Some(1).or_else {2}).to eql(1)
     end
   end
 
@@ -161,12 +163,12 @@ describe "possibly" do
 
     it "raises with 'stack'" do
       data = {
-        hash: {
-          number: {
-            name: nil,
-            value: 1
+          hash: {
+              number: {
+                  name: nil,
+                  value: 1
+              }
           }
-        }
       }
 
       # TODO: re-enable this
@@ -183,25 +185,25 @@ describe "possibly" do
       # ].join("\n")
 
       expect {
-        Maybe(data)[:hash].map { |h|
+        Maybe(data)[:hash].map {|h|
           h[:numbers]
         }.select {
-          |number| number[:value].odd?
-        }[:name].slice(1,4).or_raise()
+            |number| number[:value].odd?
+        }[:name].slice(1, 4).or_raise()
 
-      }.to raise_error(None::ValueExpectedException)#, message)
+      }.to raise_error(None::ValueExpectedException) #, message)
     end
 
     it "raises with stack and message" do
 
       message = [
-        "must be Some",
-        "",
-        "Maybe => None",
-        ""
+          "must be Some",
+          "",
+          "Maybe => None",
+          ""
       ].join("\n")
 
-      expect{ Maybe(nil).or_raise("must be Some") }.to raise_error(None::ValueExpectedException, message)
+      expect {Maybe(nil).or_raise("must be Some")}.to raise_error(None::ValueExpectedException, message)
     end
 
     it "has the same interface as Kernel raise method" do
@@ -210,28 +212,28 @@ describe "possibly" do
       }
 
       msg = "message and stack"
-      expect{Maybe(nil).or_raise(msg) }
-        .to raise_error(None::ValueExpectedException, with_stack.call(msg))
+      expect {Maybe(nil).or_raise(msg)}
+          .to raise_error(None::ValueExpectedException, with_stack.call(msg))
 
       msg = "message without stack"
-      expect{Maybe(nil).or_raise(msg, print_stack: false) }
-        .to raise_error(None::ValueExpectedException, msg)
+      expect {Maybe(nil).or_raise(msg, print_stack: false)}
+          .to raise_error(None::ValueExpectedException, msg)
 
       msg = "argument error object and stack"
-      expect{Maybe(nil).or_raise(ArgumentError.new(msg)) }
-        .to raise_error(ArgumentError, with_stack.call(msg))
+      expect {Maybe(nil).or_raise(ArgumentError.new(msg))}
+          .to raise_error(ArgumentError, with_stack.call(msg))
 
       msg = "argument error object without stack"
-      expect{Maybe(nil).or_raise(ArgumentError.new(msg), print_stack: false) }
-        .to raise_error(ArgumentError, msg)
+      expect {Maybe(nil).or_raise(ArgumentError.new(msg), print_stack: false)}
+          .to raise_error(ArgumentError, msg)
 
       msg = "argument error class, message and stack "
-      expect{Maybe(nil).or_raise(ArgumentError, msg) }
-        .to raise_error(ArgumentError, with_stack.call(msg))
+      expect {Maybe(nil).or_raise(ArgumentError, msg)}
+          .to raise_error(ArgumentError, with_stack.call(msg))
 
       msg = "argument error class, message without stack "
-      expect{Maybe(nil).or_raise(ArgumentError, msg, print_stack: false) }
-        .to raise_error(ArgumentError, msg)
+      expect {Maybe(nil).or_raise(ArgumentError, msg, print_stack: false)}
+          .to raise_error(ArgumentError, msg)
     end
   end
 
@@ -244,7 +246,7 @@ describe "possibly" do
   describe "forward" do
     it "forwards methods" do
       expect(Some("maybe").upcase.get).to eql("MAYBE")
-      expect(Some([1, 2, 3]).map { |arr| arr.map { |v| v * v } }.get).to eql([1, 4, 9])
+      expect(Some([1, 2, 3]).map {|arr| arr.map {|v| v * v}}.get).to eql([1, 4, 9])
     end
   end
 end
