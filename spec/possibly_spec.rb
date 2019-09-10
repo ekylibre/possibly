@@ -1,48 +1,11 @@
 require 'possibly'
 
 describe "possibly" do
-  # describe "enumerable" do
-  #   it "#each" do
-  #     expect { |b| Some(1).each(&b) }.to yield_with_args(1)
-  #     expect { |b| None().each(&b) }.not_to yield_with_args
-  #   end
-  #
-  #   it "#map" do
-  #     expect(Some(2).map { |v| v * v }.get).to eql(4)
-  #     expect { |b| None().map(&b) }.not_to yield_with_args
-  #   end
-  #
-  #   it "#inject" do
-  #     expect(Some(2).inject(5) { |v| v * v }).to eql(25)
-  #     expect { |b| None().inject(&b) }.not_to yield_with_args
-  #     expect(None().inject(5) { }).to eql(5)
-  #   end
-  #
-  #   it "#select" do
-  #     expect(Some(2).select { |v| v % 2 == 0 }.get).to eql(2)
-  #     expect(Some(1).select { |v| v % 2 == 0 }.is_none?).to eql(true)
-  #   end
-  #
-  #   it "#flat_map" do
-  #     div = ->(num, denom) {
-  #       if (denom == 0)
-  #         Maybe(nil)
-  #       else
-  #         Maybe(num.to_f / denom.to_f)
-  #       end
-  #     }
-  #     expect(Maybe(5).flat_map { |x| div.call(1, x) }).to eql(Maybe(0.2))
-  #     expect(Maybe(0).flat_map { |x| div.call(1, x) }).to eql(None())
-  #   end
-  # end
 
   describe "values and non-values" do
     it "None" do
       expect(Maybe(nil).is_none?).to eql(true)
-      expect(Maybe([]).is_none?).to eql(true)
-      expect(Maybe("").is_none?).to eql(true)
-      expect(Maybe(nil).map {raise "Should not be executed"}.is_none?).to eql(true)
-      expect(Maybe(nil).map! {raise "Should not be executed"}.is_none?).to eql(true)
+      expect(Maybe(nil).fmap { raise "Should not be executed" }.is_none?).to eql(true)
     end
 
     it "Some" do
@@ -50,9 +13,11 @@ describe "possibly" do
       expect(Maybe(false).is_some?).to eql(true)
       expect(Maybe([1]).is_some?).to eql(true)
       expect(Maybe(" ").is_some?).to eql(true)
-      expect(Maybe(" ").map {"value"}.is_some?).to eql(true)
-      expect(Maybe(" ").map {"value"}.get).to eql("value")
-      expect(Maybe([1]).map! {|i| i + 1}.get).to eql([2])
+      expect(Maybe([]).is_some?).to eql(true)
+      expect(Maybe("").is_some?).to eql(true)
+      expect(Maybe(" ").fmap { "value" }.is_some?).to eql(true)
+      expect(Maybe(" ").fmap { "value" }.get).to eql("value")
+      expect(Maybe([1]).map! { |i| i + 1 }.get).to eql([2])
     end
   end
 
@@ -94,12 +59,12 @@ describe "possibly" do
   describe "case expression" do
     def test_case_when(case_value, match_value, non_match_value)
       value = case case_value
-              when non_match_value
-                false
-              when match_value
-                true
-              else
-                false
+                when non_match_value
+                  false
+                when match_value
+                  true
+                else
+                  false
               end
 
       expect(value).to be true
@@ -122,37 +87,83 @@ describe "possibly" do
     end
 
     it "matches to lambda" do
-      even = ->(a) {a % 2 == 0}
-      odd = ->(a) {a % 2 == 1}
+      even = ->(a) { a % 2 == 0 }
+      odd = ->(a) { a % 2 == 1 }
       test_case_when(Maybe(2), Some(even), Some(odd))
-    end
-  end
-
-  describe "to array" do
-    it "#to_a" do
-      expect(Maybe(1).to_a).to eql([1])
-      expect(Maybe(nil).to_a).to eql([])
     end
   end
 
   describe "get and or_else" do
     it "get" do
       message = [
-          "`get` called to None. A value was expected.",
-          "",
-          "None => None",
-          ""
+        "`get` called to None. A value was expected.",
+        "",
+        "None => None",
+        ""
       ].join("\n")
 
-      expect {None().get}.to raise_error(None::ValueExpectedException, message)
+      expect { None().get }.to raise_error(None::ValueExpectedException, message)
       expect(Some(1).get).to eql(1)
     end
 
     it "or_else" do
       expect(None().or_else(true)).to eql(true)
-      expect(None().or_else {false}).to eql(false)
+      expect(None().or_else { false }).to eql(false)
       expect(Some(1).or_else(2)).to eql(1)
-      expect(Some(1).or_else {2}).to eql(1)
+      expect(Some(1).or_else { 2 }).to eql(1)
+    end
+  end
+
+  describe 'recover' do
+    it 'does does not execute block on Some and returns self' do
+      called = false
+      some = Maybe(42)
+
+      expect(some.recover { called = true; 43 }).to be some
+      expect(some.recover(56)).to be some
+      expect(called).to be false
+    end
+
+    it "returns value or call block on None" do
+      called = false
+      none = None()
+      expect(none.recover { called = true; 42 }).to eql(Some(42))
+      expect(called).to be true
+      expect(none.recover(42)).to eql(Some(42))
+    end
+
+    it "flattens returned maybe values" do
+      none = None()
+
+      expect(none.recover(nil)).to eql(None())
+      expect(none.recover(None())).to eql(None())
+      expect(none.recover { None() }).to eql(None())
+
+      expect(none.recover(Maybe(42))).to eql(Some(42))
+      expect(none.recover { Maybe(42) }).to eql(Some(42))
+    end
+  end
+
+  describe 'catch' do
+    it "returns self" do
+      maybe = Maybe(42)
+      none = Maybe(nil)
+      expect(maybe.catch { 42 }).to be maybe
+      expect(none.catch { 42 }).to be none
+    end
+
+    it 'does not execute block on Some' do
+      called = false
+      Maybe(42).catch { called = true }
+
+      expect(called).to be false
+    end
+
+    it 'executes the block on None' do
+      called = false
+      None().catch { called = true }
+
+      expect(called).to be true
     end
   end
 
@@ -163,12 +174,12 @@ describe "possibly" do
 
     it "raises with 'stack'" do
       data = {
-          hash: {
-              number: {
-                  name: nil,
-                  value: 1
-              }
+        hash: {
+          number: {
+            name: nil,
+            value: 1
           }
+        }
       }
 
       # TODO: re-enable this
@@ -185,10 +196,10 @@ describe "possibly" do
       # ].join("\n")
 
       expect {
-        Maybe(data)[:hash].map {|h|
+        Maybe(data)[:hash].fmap { |h|
           h[:numbers]
         }.select {
-            |number| number[:value].odd?
+          |number| number[:value].odd?
         }[:name].slice(1, 4).or_raise()
 
       }.to raise_error(None::ValueExpectedException) #, message)
@@ -197,13 +208,13 @@ describe "possibly" do
     it "raises with stack and message" do
 
       message = [
-          "must be Some",
-          "",
-          "Maybe => None",
-          ""
+        "must be Some",
+        "",
+        "Maybe => None",
+        ""
       ].join("\n")
 
-      expect {Maybe(nil).or_raise("must be Some")}.to raise_error(None::ValueExpectedException, message)
+      expect { Maybe(nil).or_raise("must be Some") }.to raise_error(None::ValueExpectedException, message)
     end
 
     it "has the same interface as Kernel raise method" do
@@ -212,41 +223,42 @@ describe "possibly" do
       }
 
       msg = "message and stack"
-      expect {Maybe(nil).or_raise(msg)}
-          .to raise_error(None::ValueExpectedException, with_stack.call(msg))
+      expect { Maybe(nil).or_raise(msg) }
+        .to raise_error(None::ValueExpectedException, with_stack.call(msg))
 
       msg = "message without stack"
-      expect {Maybe(nil).or_raise(msg, print_stack: false)}
-          .to raise_error(None::ValueExpectedException, msg)
+      expect { Maybe(nil).or_raise(msg, print_stack: false) }
+        .to raise_error(None::ValueExpectedException, msg)
 
       msg = "argument error object and stack"
-      expect {Maybe(nil).or_raise(ArgumentError.new(msg))}
-          .to raise_error(ArgumentError, with_stack.call(msg))
+      expect { Maybe(nil).or_raise(ArgumentError.new(msg)) }
+        .to raise_error(ArgumentError, with_stack.call(msg))
 
       msg = "argument error object without stack"
-      expect {Maybe(nil).or_raise(ArgumentError.new(msg), print_stack: false)}
-          .to raise_error(ArgumentError, msg)
+      expect { Maybe(nil).or_raise(ArgumentError.new(msg), print_stack: false) }
+        .to raise_error(ArgumentError, msg)
 
       msg = "argument error class, message and stack "
-      expect {Maybe(nil).or_raise(ArgumentError, msg)}
-          .to raise_error(ArgumentError, with_stack.call(msg))
+      expect { Maybe(nil).or_raise(ArgumentError, msg) }
+        .to raise_error(ArgumentError, with_stack.call(msg))
 
       msg = "argument error class, message without stack "
-      expect {Maybe(nil).or_raise(ArgumentError, msg, print_stack: false)}
-          .to raise_error(ArgumentError, msg)
+      expect { Maybe(nil).or_raise(ArgumentError, msg, print_stack: false) }
+        .to raise_error(ArgumentError, msg)
     end
   end
 
   describe "or_nil" do
     it "gets the value" do
       expect(Maybe(1).or_nil).to eq(1)
+      expect(None().or_nil).to eq(nil)
     end
   end
 
   describe "forward" do
     it "forwards methods" do
       expect(Some("maybe").upcase.get).to eql("MAYBE")
-      expect(Some([1, 2, 3]).map {|arr| arr.map {|v| v * v}}.get).to eql([1, 4, 9])
+      expect(Some([1, 2, 3]).fmap { |arr| arr.map { |v| v * v } }.get).to eql([1, 4, 9])
     end
   end
 end

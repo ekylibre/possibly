@@ -6,28 +6,21 @@ class Some < Maybe
     @parent_stack = parent_stack
   end
 
-  def get
+  def get(*)
     @value
   end
 
-  def or_else(*)
-    @value
+  alias_method :or_else, :get
+  alias_method :or_raise, :get
+
+  def catch(*)
+    self
   end
 
-  def or_raise(*)
-    @value
-  end
-
-  def or_nil
-    @value
-  end
+  alias_method :recover, :catch
 
   def is_some?
     true
-  end
-
-  def is_none?
-    false
   end
 
   def ==(other)
@@ -44,27 +37,19 @@ class Some < Maybe
     Maybe(@value.send(method_sym, *args, &block))
   end
 
-  def respond_to_missing?(name, include_all)
-    @value.respond_to?(name, include_all) || super
-  end
 
   def to_s
     "Some(#{@value})"
   end
 
-  def map!(&block)
-    if @value.respond_to? :map
-      Maybe(@value.map &block)
-    else
-      map &block
-    end
-  end
-
-  def map(&block)
+  def fmap(&block)
     Maybe(block.call @value)
   end
 
-  def to_a
-    [@value]
-  end
+  private
+
+    def respond_to_missing?(name, include_all)
+      @value.respond_to?(name, include_all) || super
+    end
+
 end
