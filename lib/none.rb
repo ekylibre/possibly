@@ -73,6 +73,10 @@ class None < Maybe
     true
   end
 
+  def cata(some:, none:)
+    none.call
+  end
+
   private
 
     def extract_opts(args)
