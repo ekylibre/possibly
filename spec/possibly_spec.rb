@@ -59,12 +59,12 @@ describe "possibly" do
   describe "case expression" do
     def test_case_when(case_value, match_value, non_match_value)
       value = case case_value
-                when non_match_value
-                  false
-                when match_value
-                  true
-                else
-                  false
+              when non_match_value
+                false
+              when match_value
+                true
+              else
+                false
               end
 
       expect(value).to be true
