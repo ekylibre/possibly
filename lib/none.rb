@@ -1,8 +1,7 @@
 # Represents an empty value
 class None < Maybe
 
-  class ValueExpectedException < Exception;
-  end
+  class ValueExpectedException < Exception; end
 
   def initialize(inst_method = nil, parent_stack = [])
     @inst_method = inst_method || ["None.new", []]
@@ -27,11 +26,7 @@ class None < Maybe
     Maybe(block_given? ? yield : els)
   end
 
-  def or_raise(*args)
-    opts, args = extract_opts(args)
-    msg_or_exception, msg = args
-    default_message = "`or_raise` called to None. A value was expected."
-
+  def or_raise(msg_or_exception = "`or_raise` called to None. A value was expected.", msg = nil, print_stack: true)
     exception_object =
       if msg_or_exception.respond_to? :exception
         if msg
@@ -40,14 +35,14 @@ class None < Maybe
           msg_or_exception.exception
         end
       else
-        ValueExpectedException.new(msg_or_exception || default_message)
+        ValueExpectedException.new(msg_or_exception)
       end
 
     exception_and_stack =
-      if opts[:print_stack] == false
-        exception_object
-      else
+      if print_stack
         exception_object.exception(print_error(exception_object.message))
+      else
+        exception_object
       end
 
     raise exception_and_stack
