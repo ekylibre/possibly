@@ -37,7 +37,6 @@ class Some < Maybe
     Maybe(@value.send(method_sym, *args, &block))
   end
 
-
   def to_s
     "Some(#{@value})"
   end
@@ -46,10 +45,15 @@ class Some < Maybe
     Maybe(block.call @value)
   end
 
+  def cata(some:, none:)
+    some.call(@value)
+  end
+
   private
 
     def respond_to_missing?(name, include_all)
       @value.respond_to?(name, include_all) || super
     end
+
 
 end

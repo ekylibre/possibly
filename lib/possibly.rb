@@ -2,6 +2,7 @@ require_relative 'maybe'
 require_relative 'some'
 require_relative 'none'
 
+# rubocop:disable MethodName
 def Maybe(value, parent_stack = [], inst_method = nil)
   inst_method ||= ["Maybe", []]
   if value.nil? || (value.is_a?(None))

@@ -261,4 +261,38 @@ describe "possibly" do
       expect(Some([1, 2, 3]).fmap { |arr| arr.map { |v| v * v } }.get).to eql([1, 4, 9])
     end
   end
+
+  describe "cata" do
+    it 'calls only the none function if called on None' do
+      none_called = false
+      some_called = false
+      None().cata(
+        some: ->(_v) { some_called = true },
+        none: -> { none_called = true }
+      )
+
+      expect(none_called).to be(true)
+      expect(some_called).to be(false)
+    end
+
+    it 'calls only the some function if called on Some giving to inside value as parameter' do
+      none_called = false
+      some_called = false
+      some_parameter = nil
+
+      Some(42).cata(
+        some: ->(v) { some_called = true; some_parameter = v },
+        none: -> { none_called = true }
+      )
+
+      expect(none_called).to be(false)
+      expect(some_called).to be(true)
+      expect(some_parameter).to be(42)
+    end
+
+    it "returns the values returned by the provided functions" do
+      expect(None().cata(some: -> {}, none: -> { 42 })).to be(42)
+      expect(Some(21).cata(some: ->(e) { e * 2 }, none: -> { 23 })).to be(42)
+    end
+  end
 end
